@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 import pygame
 
@@ -66,11 +67,12 @@ async def main():
                 pygame.draw.rect(window, (0, 128, 0),
                                  (self.hitbox[0], self.hitbox[1] - 20, 50 - (5 * (10 - self.health)), 10))  # NEW
                 self.hitbox = (self.x + 17, self.y + 11, 29, 52)  # redraw hitbox everytime player gets hit
+                # draw the hitbox around the player
+               # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 1    )
             else:
                 gameOverText = font.render("GAMEOVER!" , 1, (0, 0, 0))
                 window.blit(gameOverText, (250, 240))
-                # draw the hitbox around the player
-                # pygame.draw.rect(window, (255,0,0), self.hitbox, 2)
+
 
         def hit(self):
             if self.health > 0:
@@ -119,7 +121,7 @@ async def main():
                 pygame.draw.rect(window, (0, 128, 0),
                                  (self.hitbox[0], self.hitbox[1] - 20, 50 - (5 * (10 - self.health)), 10))  # NEW
                 self.hitbox = (self.x + 17, self.y + 2, 31, 57)  # redraw hitbox everytime player gets hit
-                # draw the hitbox around the player
+                # draw the hitbox around the enemy
             # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 2)
 
         def move(self):
@@ -144,7 +146,7 @@ async def main():
                 self.health -= 1
             else:
                 self.visible = False
-            print('hit')
+            #print('hit')
 
 
     class projectile(object):
@@ -166,7 +168,8 @@ async def main():
         scoreText = font.render("Score:" + str(score), 1, (0, 0, 0))
         window.blit(scoreText, (370, 10))
         man.draw(window)
-        goblin.draw(window)
+        for goblin in goblins:
+            goblin.draw(window)
         for bullet in bullets:
             bullet.draw(window)
 
@@ -177,19 +180,30 @@ async def main():
     bullets = []
     shootRange = 0
     score = 0
-    goblin = enemy(100, 410, 50, 50, 300)
+
+    # Timer event constants
+    SPAWN_ENEMY_EVENT = pygame.USEREVENT + 1
+    ENEMY_SPAWN_INTERVAL = 2000  # milliseconds (2 seconds)
+
+    goblins=[]
+    pygame.time.set_timer(SPAWN_ENEMY_EVENT, ENEMY_SPAWN_INTERVAL)
+    goblin_num=2
 
     font = pygame.font.SysFont('comicsans', 30, True)
     run = True
+
+
+
     while run:
         # set fps to 27
         clock.tick(27)
-        if man.hitbox[1] < goblin.hitbox[1] + goblin.hitbox[3] and man.hitbox[1] + man.hitbox[3] > goblin.hitbox[
-            1]:  # Checks x coords
-            if man.hitbox[0] + man.hitbox[2] > goblin.hitbox[0] and man.hitbox[0] < goblin.hitbox[0] + goblin.hitbox[
-                2]:  # Checks y coords
-                if man.visible==True:
-                    man.hit()
+        for goblin in goblins:
+            if man.hitbox[1] < goblin.hitbox[1] + goblin.hitbox[3] and man.hitbox[1] + man.hitbox[3] > goblin.hitbox[
+                1]:  # Checks x coords
+                if man.hitbox[0] + man.hitbox[2] > goblin.hitbox[0] and man.hitbox[0] < goblin.hitbox[0] + goblin.hitbox[
+                    2]:  # Checks y coords
+                    if man.visible==True:
+                        man.hit()
 
         if shootRange > 0:
             shootRange += 1
@@ -200,6 +214,12 @@ async def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+            elif event.type ==SPAWN_ENEMY_EVENT:
+                if len(goblins)< goblin_num:
+                    new_goblin = enemy((random.randrange(20, 400)), 410, 64, 64, 450)
+                    goblins.append(new_goblin)
+                    print(len(goblins ))
+
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_LEFT] and man.x > man.vel:
@@ -221,7 +241,7 @@ async def main():
                 facing = 1
             if len(bullets) < 5:
                 bullets.append(
-                    projectile(round(man.x + man.width // 2), round(man.y + man.height // 2), 6, (0, 0, 0), facing))
+                projectile(round(man.x + man.width // 2), round(man.y + man.height // 2), 6, (0, 0, 0), facing))
             shootRange = 1
         else:
 
@@ -244,15 +264,19 @@ async def main():
                 man.jumpCount = 10
                 man.isJump = False
         for bullet in bullets:
-            # checks bullet collision to hitbox
-            if bullet.y - bullet.radius < goblin.hitbox[1] + goblin.hitbox[3] and bullet.y + bullet.radius > goblin.hitbox[
-                1]:  # Checks x coords
-                if bullet.x + bullet.radius > goblin.hitbox[0] and bullet.x - bullet.radius < goblin.hitbox[0] + \
-                        goblin.hitbox[2]:  # Checks y coords
-                    if goblin.visible == True:
-                        goblin.hit()  # calls enemy hit method
-                        score += 1
-                        bullets.pop(bullets.index(bullet))  # removes bullet from bullet list
+            for goblin in goblins:
+                # checks bullet collision to hitbox
+                if bullet.y - bullet.radius < goblin.hitbox[1] + goblin.hitbox[3] and bullet.y + bullet.radius > goblin.hitbox[
+                    1]:  # Checks x coords
+                    if bullet.x + bullet.radius > goblin.hitbox[0] and bullet.x - bullet.radius < goblin.hitbox[0] + \
+                            goblin.hitbox[2]:  # Checks y coords
+                        if goblin.visible == True:
+                            goblin.hit()  # calls enemy hit method
+                            bullets.pop(bullets.index(bullet))  # removes bullet from bullet list
+                        else:
+                            score += 5
+                            goblins.pop(goblins.index(goblin))
+
 
             if bullet.x > 0 and bullet.x < 500:
                 bullet.x += bullet.vel  # shoots bullets left or right with the speed velocity
