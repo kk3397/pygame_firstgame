@@ -41,7 +41,7 @@ async def main():
             self.right = False
             self.walkCount = 0
             self.jumpCount = 10
-            self.health=10
+            self.health=100
             self.standing = True
             self.visible = True
             self.hitbox = (self.x + 17, self.y + 11, 29, 52)
@@ -63,12 +63,12 @@ async def main():
                         window.blit(walkRight[0], (self.x, self.y))
                     else:
                         window.blit(walkLeft[0], (self.x, self.y))
-                pygame.draw.rect(window, (255, 0, 0), (self.hitbox[0], self.hitbox[1] - 20, 50, 10))  # NEW
-                pygame.draw.rect(window, (0, 128, 0),
-                                 (self.hitbox[0], self.hitbox[1] - 20, 50 - (5 * (10 - self.health)), 10))  # NEW
+                # pygame.draw.rect(window, (255, 0, 0), (self.hitbox[0], self.hitbox[1] - 20, 50, 10))  # NEW
+                # pygame.draw.rect(window, (0, 128, 0),
+                #                  (self.hitbox[0], self.hitbox[1] - 20, 50 - (10  * (50 - self.health)), 10))  # NEW
                 self.hitbox = (self.x + 17, self.y + 11, 29, 52)  # redraw hitbox everytime player gets hit
                 # draw the hitbox around the player
-               # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 1    )
+               #     pygame.draw.rect(window, (255, 0, 0), self.hitbox, 1    )
             else:
                 gameOverText = font.render("GAMEOVER!" , 1, (0, 0, 0))
                 window.blit(gameOverText, (250, 240))
@@ -80,7 +80,7 @@ async def main():
                 self.health -= 1
             else:
                 self.visible = False
-
+            print(self.health)
 
     class enemy(object):
         # set walking animations for the enemy
@@ -167,6 +167,10 @@ async def main():
         window.blit(bg, (0, 0))
         scoreText = font.render("Score:" + str(score), 1, (0, 0, 0))
         window.blit(scoreText, (370, 10))
+
+        playerHealthText = fontSmall.render("Health:" + str(man.health), 1, (0, 0, 0))
+        window.blit(playerHealthText, (30, 10))
+
         man.draw(window)
         for goblin in goblins:
             goblin.draw(window)
@@ -183,13 +187,14 @@ async def main():
 
     # Timer event constants
     SPAWN_ENEMY_EVENT = pygame.USEREVENT + 1
-    ENEMY_SPAWN_INTERVAL = 2000  # milliseconds (2 seconds)
+    ENEMY_SPAWN_INTERVAL = 5000  # milliseconds (2 seconds)
 
     goblins=[]
     pygame.time.set_timer(SPAWN_ENEMY_EVENT, ENEMY_SPAWN_INTERVAL)
     goblin_num=2
 
     font = pygame.font.SysFont('comicsans', 30, True)
+    fontSmall = pygame.font.SysFont('comicsans', 15, True)
     run = True
 
 
@@ -214,55 +219,56 @@ async def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-            elif event.type ==SPAWN_ENEMY_EVENT:
+            elif event.type ==SPAWN_ENEMY_EVENT: #spawn system
                 if len(goblins)< goblin_num:
                     new_goblin = enemy((random.randrange(20, 400)), 410, 64, 64, 450)
                     goblins.append(new_goblin)
                     print(len(goblins ))
 
         keys = pygame.key.get_pressed()
-
-        if keys[pygame.K_LEFT] and man.x > man.vel:
-            man.x -= man.vel
-            man.left = True
-            man.right = False
-            man.standing = False
-
-        elif keys[pygame.K_RIGHT] and man.x < 500 - man.width - man.vel:
-            man.x += man.vel
-            man.left = False
-            man.right = True
-            man.standing = False
-        elif keys[pygame.K_SPACE] and shootRange == 0:
-            # bulletSound.play()
-            if man.left:
-                facing = -1
-            else:
-                facing = 1
-            if len(bullets) < 5:
-                bullets.append(
-                projectile(round(man.x + man.width // 2), round(man.y + man.height // 2), 6, (0, 0, 0), facing))
-            shootRange = 1
-        else:
-
-            man.standing = True
-            man.walkCount = 0
-        if not (man.isJump):
-            if keys[pygame.K_UP]:
-                man.isJump = True
-                man.left = False
+        #all key functunality
+        if man.visible==True:
+            if keys[pygame.K_LEFT] and man.x > man.vel:
+                man.x -= man.vel
+                man.left = True
                 man.right = False
-                man.walkCount = 0
-        else:
-            if man.jumpCount >= -10:
-                man.neg = 1
-                if man.jumpCount < 0:
-                    man.neg = -1
-                man.y -= (man.jumpCount ** 2) * 0.5 * man.neg
-                man.jumpCount -= 1
+                man.standing = False
+
+            elif keys[pygame.K_RIGHT] and man.x < 500 - man.width - man.vel:
+                man.x += man.vel
+                man.left = False
+                man.right = True
+                man.standing = False
+            elif keys[pygame.K_SPACE] and shootRange == 0:
+                # bulletSound.play()
+                if man.left:
+                    facing = -1
+                else:
+                    facing = 1
+                if len(bullets) < 3:
+                    bullets.append(
+                    projectile(round(man.x + man.width // 2), round(man.y + man.height // 2), 6, (0, 0, 0), facing))
+                shootRange = 1
             else:
-                man.jumpCount = 10
-                man.isJump = False
+
+                man.standing = True
+                man.walkCount = 0
+            if not (man.isJump):
+                if keys[pygame.K_UP]:
+                    man.isJump = True
+                    man.left = False
+                    man.right = False
+                    man.walkCount = 0
+            else:
+                if man.jumpCount >= -10:
+                    man.neg = 1
+                    if man.jumpCount < 0:
+                        man.neg = -1
+                    man.y -= (man.jumpCount ** 2) * 0.5 * man.neg
+                    man.jumpCount -= 1
+                else:
+                    man.jumpCount = 10
+                    man.isJump = False
         for bullet in bullets:
             for goblin in goblins:
                 # checks bullet collision to hitbox
