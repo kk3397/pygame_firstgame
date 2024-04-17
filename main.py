@@ -3,7 +3,6 @@ import random
 
 import pygame
 
-
 pygame.init()
 window = pygame.display.set_mode((500, 480))
 pygame.display.set_caption("First Game")
@@ -20,14 +19,16 @@ walkLeft = [pygame.image.load('L1.png'), pygame.image.load('L2.png'), pygame.ima
 bg = pygame.image.load('bg.jpg')
 char = pygame.image.load('standing.png')
 clock = pygame.time.Clock()
+
+
 # bulletSound = pygame.mixer.Sound('bullet.mp3')
 # hitSound = pygame.mixer.Sound('hit.mp3')
 
 # bgm = pygame.mixer.music.load('music.mp3')
 # pygame.mixer.music.play(-1)  ##keeps the bgm on loop
+
+
 async def main():
-
-
     # Constructor class for the player with all attributes
     class player(object):
         def __init__(self, x, y, width, height):
@@ -41,10 +42,12 @@ async def main():
             self.right = False
             self.walkCount = 0
             self.jumpCount = 10
-            self.health=100
+            self.health = 100
             self.standing = True
             self.visible = True
             self.hitbox = (self.x + 17, self.y + 11, 29, 52)
+            self.gameover=False
+
 
         # draw function
         def draw(self, window):
@@ -68,19 +71,21 @@ async def main():
                 #                  (self.hitbox[0], self.hitbox[1] - 20, 50 - (10  * (50 - self.health)), 10))  # NEW
                 self.hitbox = (self.x + 17, self.y + 11, 29, 52)  # redraw hitbox everytime player gets hit
                 # draw the hitbox around the player
-               #     pygame.draw.rect(window, (255, 0, 0), self.hitbox, 1    )
+            #     pygame.draw.rect(window, (255, 0, 0), self.hitbox, 1    )
             else:
-                gameOverText = font.render("GAMEOVER!" , 1, (0, 0, 0))
-                window.blit(gameOverText, (250, 240))
-
+                isDead()
+                game_over = True
 
         def hit(self):
             if self.health > 0:
                 # hitSound.play()
                 self.health -= 1
-            else:
+            if self.health==0:
                 self.visible = False
-            print(self.health)
+                self.gameover=True
+
+
+
 
     class enemy(object):
         # set walking animations for the enemy
@@ -146,8 +151,7 @@ async def main():
                 self.health -= 1
             else:
                 self.visible = False
-            #print('hit')
-
+            # print('hit')
 
     class projectile(object):
         def __init__(self, x, y, radius, color, facing):
@@ -161,8 +165,14 @@ async def main():
         def draw(self, window):
             pygame.draw.circle(window, self.color, (self.x, self.y), self.radius)
 
-
     # update function to update the character
+
+    def isDead():
+            global game_over
+            gameOverText = fontSmall.render("GAMEOVER! Press R to Restart", 1, (0, 0, 0))
+            window.blit(gameOverText, (100, 240))
+
+
     def redrawGameWindow():
         window.blit(bg, (0, 0))
         scoreText = font.render("Score:" + str(score), 1, (0, 0, 0))
@@ -179,7 +189,6 @@ async def main():
 
         pygame.display.update()
 
-
     man = player(200, 410, 64, 64)
     bullets = []
     shootRange = 0
@@ -189,14 +198,14 @@ async def main():
     SPAWN_ENEMY_EVENT = pygame.USEREVENT + 1
     ENEMY_SPAWN_INTERVAL = 5000  # milliseconds (2 seconds)
 
-    goblins=[]
+    goblins = []
     pygame.time.set_timer(SPAWN_ENEMY_EVENT, ENEMY_SPAWN_INTERVAL)
-    goblin_num=2
+    goblin_num = 2
 
     font = pygame.font.SysFont('comicsans', 30, True)
     fontSmall = pygame.font.SysFont('comicsans', 15, True)
-    run = True
 
+    run = True
 
 
     while run:
@@ -205,9 +214,10 @@ async def main():
         for goblin in goblins:
             if man.hitbox[1] < goblin.hitbox[1] + goblin.hitbox[3] and man.hitbox[1] + man.hitbox[3] > goblin.hitbox[
                 1]:  # Checks x coords
-                if man.hitbox[0] + man.hitbox[2] > goblin.hitbox[0] and man.hitbox[0] < goblin.hitbox[0] + goblin.hitbox[
-                    2]:  # Checks y coords
-                    if man.visible==True:
+                if man.hitbox[0] + man.hitbox[2] > goblin.hitbox[0] and man.hitbox[0] < goblin.hitbox[0] + \
+                        goblin.hitbox[
+                            2]:  # Checks y coords
+                    if man.visible == True:
                         man.hit()
 
         if shootRange > 0:
@@ -219,15 +229,15 @@ async def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-            elif event.type ==SPAWN_ENEMY_EVENT: #spawn system
-                if len(goblins)< goblin_num:
+            elif event.type == SPAWN_ENEMY_EVENT:  # spawn system
+                if len(goblins) < goblin_num:
                     new_goblin = enemy((random.randrange(20, 400)), 410, 64, 64, 450)
                     goblins.append(new_goblin)
-                    print(len(goblins ))
+                    print(len(goblins))
 
         keys = pygame.key.get_pressed()
-        #all key functunality
-        if man.visible==True:
+        # all key functunality
+        if man.visible:
             if keys[pygame.K_LEFT] and man.x > man.vel:
                 man.x -= man.vel
                 man.left = True
@@ -239,6 +249,7 @@ async def main():
                 man.left = False
                 man.right = True
                 man.standing = False
+
             elif keys[pygame.K_SPACE] and shootRange == 0:
                 # bulletSound.play()
                 if man.left:
@@ -247,12 +258,13 @@ async def main():
                     facing = 1
                 if len(bullets) < 3:
                     bullets.append(
-                    projectile(round(man.x + man.width // 2), round(man.y + man.height // 2), 6, (0, 0, 0), facing))
+                        projectile(round(man.x + man.width // 2), round(man.y + man.height // 2), 6, (0, 0, 0), facing))
                 shootRange = 1
             else:
 
                 man.standing = True
                 man.walkCount = 0
+
             if not (man.isJump):
                 if keys[pygame.K_UP]:
                     man.isJump = True
@@ -269,11 +281,26 @@ async def main():
                 else:
                     man.jumpCount = 10
                     man.isJump = False
+        if keys[pygame.K_r] and man.gameover:
+            man = player(200, 410, 64, 64)
+            bullets = []
+            shootRange = 0
+            score = 0
+
+            # Timer event constants
+            SPAWN_ENEMY_EVENT = pygame.USEREVENT + 1
+            ENEMY_SPAWN_INTERVAL = 5000  # milliseconds (2 seconds)
+
+            goblins = []
+            pygame.time.set_timer(SPAWN_ENEMY_EVENT, ENEMY_SPAWN_INTERVAL)
+            goblin_num = 2
+            game_over = False
         for bullet in bullets:
             for goblin in goblins:
                 # checks bullet collision to hitbox
-                if bullet.y - bullet.radius < goblin.hitbox[1] + goblin.hitbox[3] and bullet.y + bullet.radius > goblin.hitbox[
-                    1]:  # Checks x coords
+                if bullet.y - bullet.radius < goblin.hitbox[1] + goblin.hitbox[3] and bullet.y + bullet.radius > \
+                        goblin.hitbox[
+                            1]:  # Checks x coords
                     if bullet.x + bullet.radius > goblin.hitbox[0] and bullet.x - bullet.radius < goblin.hitbox[0] + \
                             goblin.hitbox[2]:  # Checks y coords
                         if goblin.visible == True:
@@ -283,12 +310,14 @@ async def main():
                             score += 5
                             goblins.pop(goblins.index(goblin))
 
-
             if bullet.x > 0 and bullet.x < 500:
                 bullet.x += bullet.vel  # shoots bullets left or right with the speed velocity
             else:
                 bullets.pop(bullets.index(bullet))  # erases the bullet when offscreen
 
+
         redrawGameWindow()
         await asyncio.sleep(0)
+
+
 asyncio.run(main())
