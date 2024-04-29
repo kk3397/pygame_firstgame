@@ -1,5 +1,6 @@
 import asyncio
 import random
+import time
 
 import pygame
 
@@ -20,12 +21,13 @@ bg = pygame.image.load('bg.jpg')
 char = pygame.image.load('standing.png')
 clock = pygame.time.Clock()
 healthup = pygame.image.load("potion.png")
+moreAmmo = pygame.image.load("ammo.png")
 
 bulletSound = pygame.mixer.Sound('bullet.ogg')
 hitSound = pygame.mixer.Sound('hit.ogg')
 
-pygame.mixer.music.load('music.ogg')
-pygame.mixer.music.play(-1)  # keeps the bgm on loop
+# pygame.mixer.music.load('music.ogg')
+# pygame.mixer.music.play(-1)  # keeps the bgm on loop
 
 
 async def main():
@@ -43,6 +45,7 @@ async def main():
             self.walkCount = 0
             self.jumpCount = 10
             self.health = 100
+            self.bullets = 3
             self.standing = True
             self.visible = True
             self.hitbox = (self.x + 17, self.y + 11, 29, 52)
@@ -164,10 +167,11 @@ async def main():
             self.x = x
             self.y = y
             self.color = color
-            self.hitbox = (self.x + 17, self.y + 2, 31, 57)
+            self.hitbox = (self.x + 17, self.y + 2, 31, 31)
+            self.start_time=0
             self.visible = True
 
-        def draw(self, window):
+        def drawHealth(self, window):
             if self.visible:
                 window.blit(healthup, (self.x, self.y))
 
@@ -175,13 +179,26 @@ async def main():
                 # draw the hitbox around the player
             # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 1    )
 
+        def drawAmmo(self, window):
+            if self.visible:
+                window.blit(moreAmmo, (self.x, self.y))
+
+                self.hitbox = (self.x + 1, self.y + 1, 28, 28)  # redraw hitbox everytime player gets hit
+                # draw the hitbox around the player
+            pygame.draw.rect(window, (255, 0, 0), self.hitbox, 1 )
+
         def recover(self):
             if 0 < man.health < 100:
                 man.health += 10
             if man.health > 100:
                 man.health = 100
 
-    # up date function to update the character
+        def increase_bullet(self, duration, new_capacity):
+            self.start_time=pygame.time.get_ticks()
+            man.bullets += new_capacity
+            time.sleep(duration)
+            return man.bullets
+
 
     def isdead():
         global game_over
@@ -202,7 +219,9 @@ async def main():
         for bullet in bullets:
             bullet.draw(window)
         for potion in potions:
-            potion.draw(window)
+            potion.drawHealth(window)
+        for ammos in ammo_item:
+            ammos.drawAmmo(window)
 
         pygame.display.update()
 
@@ -210,12 +229,16 @@ async def main():
     bullets = []
     shootRange = 0
     score = 0
-
     goblins = []
     goblin_num = 2
 
     potions = []
     potions_num = 2
+
+    ammo_item = []
+    ammo_num = 1
+    powerup_starttime=0
+    duration =10000
 
     # Timer event constants
 
@@ -224,8 +247,14 @@ async def main():
     pygame.time.set_timer(SPAWN_ENEMY_EVENT, ENEMY_SPAWN_INTERVAL)
 
     SPAWN_POTION_EVENT = pygame.USEREVENT + 2
-    POTION_SPAWN_INTERVAL = 10000  # milliseconds (2 seconds)
+    POTION_SPAWN_INTERVAL = 10000  # milliseconds (10 seconds)
     pygame.time.set_timer(SPAWN_POTION_EVENT, POTION_SPAWN_INTERVAL)
+
+    SPAWN_AMMO_EVENT = pygame.USEREVENT + 3
+    AMMO_SPAWN_INTERVAL = 3000  # milliseconds (2 seconds)
+    pygame.time.set_timer(SPAWN_AMMO_EVENT, AMMO_SPAWN_INTERVAL)
+    ammo_increase_interval =5000
+    ammo_timer_event = pygame.USEREVENT +4
 
     font = pygame.font.SysFont('comicsans', 30, True)
     fontSmall = pygame.font.SysFont('comicsans', 15, True)
@@ -244,7 +273,22 @@ async def main():
                             2]:  # Checks y coords
                     if man.visible:
                         health_potion.recover()
-                        potions.pop(potions.index(health_potion))
+                        if health_potion in potions:
+                            potions.remove(health_potion)
+        for ammos in ammo_item:
+            if man.hitbox[1] < ammos.hitbox[1] + ammos.hitbox[3] and man.hitbox[1] + man.hitbox[3] > \
+                    ammos.hitbox[
+                        1]:  # Checks x coords
+                if man.hitbox[0] + man.hitbox[2] > ammos.hitbox[0] and man.hitbox[0] < ammos.hitbox[0] + \
+                        ammos.hitbox[
+                            2]:  # Checks y coords
+                    if man.visible:
+                        man.bullets =5
+                        pygame.time.set_timer(ammo_timer_event, ammo_increase_interval, 1)
+
+                    if ammos in ammo_item:
+                            ammo_item.remove(ammos)
+
 
         for goblin in goblins:
             if man.hitbox[1] < goblin.hitbox[1] + goblin.hitbox[3] and man.hitbox[1] + man.hitbox[3] > goblin.hitbox[
@@ -273,6 +317,12 @@ async def main():
                 if len(potions) < potions_num:
                     new_potion = Powerup(250, 430, (0, 0, 0))
                     potions.append(new_potion)
+            elif event.type == SPAWN_AMMO_EVENT:  # spawn system
+                if len(ammo_item) < ammo_num:
+                    new_ammo = Powerup(250, 430, (0, 0, 0))
+                    ammo_item.append(new_ammo)
+            elif event.type == ammo_timer_event:
+                man.bullets = 3
 
         keys = pygame.key.get_pressed()
         # all key functunality
@@ -290,14 +340,15 @@ async def main():
                 man.standing = False
 
             elif keys[pygame.K_SPACE] and shootRange == 0:
-                bulletSound.play()
                 if man.left:
                     facing = -1
                 else:
                     facing = 1
-                if len(bullets) < 3:
+                if len(bullets) < man.bullets:
                     bullets.append(
                         Projectile(round(man.x + man.width // 2), round(man.y + man.height // 2), 6, (0, 0, 0), facing))
+                    bulletSound.play()
+
                 shootRange = 0
             else:
 
@@ -356,7 +407,8 @@ async def main():
                                 bullets.remove(bullet)
                         else:
                             score += 5
-                            goblins.pop(goblins.index(goblin))
+                            if goblin in goblins:
+                                goblins.remove(goblin)
 
             if 0 < bullet.x < 500:
                 bullet.x += bullet.vel  # shoots bullets left or right with the speed velocity
@@ -366,6 +418,5 @@ async def main():
 
         redrawGameWindow()
         await asyncio.sleep(0)
-
 
 asyncio.run(main())
