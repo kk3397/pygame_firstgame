@@ -26,8 +26,10 @@ moreAmmo = pygame.image.load("ammo.png")
 bulletSound = pygame.mixer.Sound('bullet.ogg')
 hitSound = pygame.mixer.Sound('hit.ogg')
 
-# pygame.mixer.music.load('music.ogg')
-# pygame.mixer.music.play(-1)  # keeps the bgm on loop
+pygame.mixer.music.load('music.ogg')
+pygame.mixer.music.set_volume(.5)
+
+pygame.mixer.music.play(-1)  # keeps the bgm on loop
 
 
 async def main():
@@ -38,7 +40,7 @@ async def main():
             self.y = y
             self.width = width
             self.height = height
-            self.vel = 5
+            self.vel = 7
             self.isJump = False
             self.left = False
             self.right = False
@@ -73,7 +75,6 @@ async def main():
                 #                  (self.hitbox[0], self.hitbox[1] - 20, 50 - (10  * (50 - self.health)), 10))  # NEW
                 self.hitbox = (self.x + 17, self.y + 11, 29, 52)  # redraw hitbox everytime player gets hit
                 # draw the hitbox around the player
-            #     pygame.draw.rect(window, (255, 0, 0), self.hitbox, 1    )
             else:
                 isdead()
 
@@ -103,7 +104,7 @@ async def main():
             self.height = height
             self.path = [x, end]  # determine walk path of enemy
             self.walkCount = 0
-            self.vel = 3
+            self.vel = 4
             self.health = 10
             self.hitbox = (self.x + 17, self.y + 2, 31, 57)
             self.visible = True
@@ -156,8 +157,9 @@ async def main():
             self.y = y
             self.radius = radius
             self.color = color
+            self.speed = 6
             self.facing = facing
-            self.vel = 8 * facing
+            self.vel = self.speed * facing
 
         def draw(self, window):
             pygame.draw.circle(window, self.color, (self.x, self.y), self.radius)
@@ -185,7 +187,7 @@ async def main():
 
                 self.hitbox = (self.x + 1, self.y + 1, 28, 28)  # redraw hitbox everytime player gets hit
                 # draw the hitbox around the player
-            pygame.draw.rect(window, (255, 0, 0), self.hitbox, 1 )
+            # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 1 )
 
         def recover(self):
             if 0 < man.health < 100:
@@ -225,6 +227,7 @@ async def main():
 
         pygame.display.update()
 
+
     man = Player(200, 410, 64, 64)
     bullets = []
     shootRange = 0
@@ -237,8 +240,6 @@ async def main():
 
     ammo_item = []
     ammo_num = 1
-    powerup_starttime=0
-    duration =10000
 
     # Timer event constants
 
@@ -251,10 +252,10 @@ async def main():
     pygame.time.set_timer(SPAWN_POTION_EVENT, POTION_SPAWN_INTERVAL)
 
     SPAWN_AMMO_EVENT = pygame.USEREVENT + 3
-    AMMO_SPAWN_INTERVAL = 3000  # milliseconds (2 seconds)
+    AMMO_SPAWN_INTERVAL = 20000  # milliseconds (2 seconds)
     pygame.time.set_timer(SPAWN_AMMO_EVENT, AMMO_SPAWN_INTERVAL)
-    ammo_increase_interval =5000
-    ammo_timer_event = pygame.USEREVENT +4
+    ammo_increase_interval = 5000
+    ammo_timer_event = pygame.USEREVENT + 4
 
     font = pygame.font.SysFont('comicsans', 30, True)
     fontSmall = pygame.font.SysFont('comicsans', 15, True)
@@ -273,6 +274,7 @@ async def main():
                             2]:  # Checks y coords
                     if man.visible:
                         health_potion.recover()
+
                         if health_potion in potions:
                             potions.remove(health_potion)
         for ammos in ammo_item:
@@ -306,20 +308,24 @@ async def main():
             shootRange = 0
 
         pygame.time.delay(100)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+
             elif event.type == SPAWN_ENEMY_EVENT:  # spawn system
                 if len(goblins) < goblin_num:
                     new_goblin = Enemy((random.randrange(20, 400)), 410, 64, 64, 450)
                     goblins.append(new_goblin)
+
             elif event.type == SPAWN_POTION_EVENT:  # spawn system
                 if len(potions) < potions_num:
-                    new_potion = Powerup(250, 430, (0, 0, 0))
+                    new_potion = Powerup((random.randrange(20, 350)), (random.randrange(240, 410)), (0, 0, 0))
                     potions.append(new_potion)
+
             elif event.type == SPAWN_AMMO_EVENT:  # spawn system
                 if len(ammo_item) < ammo_num:
-                    new_ammo = Powerup(250, 430, (0, 0, 0))
+                    new_ammo = Powerup((random.randrange(20, 350)), (random.randrange(240, 410)), (0, 0, 0))
                     ammo_item.append(new_ammo)
             elif event.type == ammo_timer_event:
                 man.bullets = 3
@@ -371,26 +377,37 @@ async def main():
                 else:
                     man.jumpCount = 10
                     man.isJump = False
+
         if keys[pygame.K_r] and man.gameover:
             man = Player(200, 410, 64, 64)
             bullets = []
             shootRange = 0
             score = 0
+            goblins = []
+            goblin_num = 2
+
+            potions = []
+            potions_num = 2
+
+            ammo_item = []
+            ammo_num = 1
 
             # Timer event constants
+
             SPAWN_ENEMY_EVENT = pygame.USEREVENT + 1
-            ENEMY_SPAWN_INTERVAL = 5000  # milliseconds (5 seconds)
+            ENEMY_SPAWN_INTERVAL = 5000  # milliseconds (5 seconds)`
+            pygame.time.set_timer(SPAWN_ENEMY_EVENT, ENEMY_SPAWN_INTERVAL)
 
             SPAWN_POTION_EVENT = pygame.USEREVENT + 2
             POTION_SPAWN_INTERVAL = 10000  # milliseconds (10 seconds)
             pygame.time.set_timer(SPAWN_POTION_EVENT, POTION_SPAWN_INTERVAL)
 
-            goblins = []
-            pygame.time.set_timer(SPAWN_ENEMY_EVENT, ENEMY_SPAWN_INTERVAL)
-            goblin_num = 2
+            SPAWN_AMMO_EVENT = pygame.USEREVENT + 3
+            AMMO_SPAWN_INTERVAL = 20000  # milliseconds (2 seconds)
+            pygame.time.set_timer(SPAWN_AMMO_EVENT, AMMO_SPAWN_INTERVAL)
 
-            potions = []
-            potions_num = 2
+            ammo_increase_interval = 5000
+            ammo_timer_event = pygame.USEREVENT + 4
 
             game_over = False
         for bullet in bullets:
