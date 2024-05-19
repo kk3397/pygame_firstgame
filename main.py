@@ -23,16 +23,15 @@ clock = pygame.time.Clock()
 
 healthup = pygame.image.load("potion.png")
 moreAmmo = pygame.image.load("ammo.png")
-bulletSpeed = pygame.image.load("speedpotion.png")
 
 bulletSound = pygame.mixer.Sound('bullet.ogg')
+bulletSound.set_volume(0.3)
 hitSound = pygame.mixer.Sound('hit.ogg')
-hitSound.set_volume(0.3)
-
-pygame.mixer.music.set_volume(0.3)
+hitSound.set_volume(0.05)
 pygame.mixer.music.load('music.ogg')
 
 pygame.mixer.music.play(-1)  # keeps the bgm on loop
+pygame.mixer.music.set_volume(0.05)
 
 
 async def main():
@@ -196,13 +195,7 @@ async def main():
                 # draw the hitbox around the player
             # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 1 )
 
-        def drawSpeed(self, window):
-            if self.visible:
-                window.blit(bulletSpeed, (self.x, self.y))
 
-                self.hitbox = (self.x + 1, self.y + 1, 28, 28)  # redraw hitbox everytime player gets hit
-                # draw the hitbox around the player
-            # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 1 )
 
         def recover(self):
             if 0 < man.health < 100:
@@ -239,8 +232,7 @@ async def main():
             potion.drawHealth(window)
         for ammos in ammo_item:
             ammos.drawAmmo(window)
-        for speed in speed_potion:
-            speed.drawSpeed(window)
+
 
         pygame.display.update()
 
@@ -269,20 +261,16 @@ async def main():
     pygame.time.set_timer(SPAWN_ENEMY_EVENT, ENEMY_SPAWN_INTERVAL)
 
     SPAWN_POTION_EVENT = pygame.USEREVENT + 2
-    POTION_SPAWN_INTERVAL = 15000  # milliseconds (10 seconds)
+    POTION_SPAWN_INTERVAL = 15000
     pygame.time.set_timer(SPAWN_POTION_EVENT, POTION_SPAWN_INTERVAL)
 
     SPAWN_AMMO_EVENT = pygame.USEREVENT + 3
-    AMMO_SPAWN_INTERVAL = 35000  # milliseconds (2 seconds)
+    AMMO_SPAWN_INTERVAL = 35000
     pygame.time.set_timer(SPAWN_AMMO_EVENT, AMMO_SPAWN_INTERVAL)
-    ammo_increase_interval = 7000
+    ammo_increase_interval = 15000
     ammo_timer_event = pygame.USEREVENT + 4
 
-    SPAWN_SPEED_POTION_EVENT = pygame.USEREVENT + 5
-    SPEED_POTION_SPAWN_INTERVAL = 30000  # milliseconds (2 seconds)
-    pygame.time.set_timer(SPAWN_SPEED_POTION_EVENT, SPEED_POTION_SPAWN_INTERVAL)
-    speed_potion_interval = 5000
-    speed_potion_duration_timer = pygame.USEREVENT + 6
+
 
     font = pygame.font.SysFont('comicsans', 30, True)
     fontSmall = pygame.font.SysFont('comicsans', 15, True)
@@ -292,6 +280,8 @@ async def main():
     while run:
         # set fps to 27
         clock.tick(27)
+        # all collision detection and effects
+
         for health_potion in potions:
             if man.hitbox[1] < health_potion.hitbox[1] + health_potion.hitbox[3] and man.hitbox[1] + man.hitbox[3] > \
                     health_potion.hitbox[
@@ -319,22 +309,6 @@ async def main():
                             ammo_item.remove(ammos)
 
 
-        for speed in speed_potion:
-            if man.hitbox[1] < speed.hitbox[1] + speed.hitbox[3] and man.hitbox[1] + man.hitbox[3] > \
-                    speed.hitbox[
-                        1]:  # Checks x coords
-                if man.hitbox[0] + man.hitbox[2] > speed.hitbox[0] and man.hitbox[0] < speed.hitbox[0] + \
-                        speed.hitbox[
-                            2]:  # Checks y coords
-                    if man.visible:
-                        for bullet in bullets:
-                            bullet.increaseVelocity(bullets, 15)
-                            print(bullet.vel)
-
-                        pygame.time.set_timer(speed_potion_duration_timer, speed_potion_interval, 1)
-
-                        if speed in speed_potion:
-                                speed_potion.remove(speed)
 
 
         for goblin in goblins:
@@ -354,6 +328,7 @@ async def main():
 
         pygame.time.delay(100)
 
+        #all event handlers
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -373,16 +348,9 @@ async def main():
                     new_ammo = Powerup((random.randrange(20, 350)), (random.randrange(240, 410)), (0, 0, 0))
                     ammo_item.append(new_ammo)
 
-            # elif event.type == SPAWN_SPEED_POTION_EVENT:  # spawn system
-            #     if len(speed_potion) < speed_potion_num:
-            #         # new_speed_potion = Powerup((random.randrange(20, 350)), (random.randrange(240, 410)), (0, 0, 0))
-            #         # speed_potion.append(new_speed_potion)
             elif event.type == ammo_timer_event:
                 man.bullets = 3
-            elif event.type == speed_potion_duration_timer:
-                for bullet in bullets:
-                    bullet.increaseVelocity(bullets, 5)
-                    print(bullet.vel)
+
 
         keys = pygame.key.get_pressed()
         # all key functunality
@@ -435,35 +403,45 @@ async def main():
         if keys[pygame.K_r] and man.gameover:
             man = Player(200, 410, 64, 64)
             bullets = []
+            global new_bullet
             shootRange = 0
             score = 0
             goblins = []
-            goblin_num = 2
+            goblin_num = 3
 
             potions = []
-            potions_num = 2
+            potions_num = 1
 
             ammo_item = []
             ammo_num = 1
 
+            speed_potion = []
+            speed_potion_num = 1
+
             # Timer event constants
 
             SPAWN_ENEMY_EVENT = pygame.USEREVENT + 1
-            ENEMY_SPAWN_INTERVAL = 5000  # milliseconds (5 seconds)`
+            ENEMY_SPAWN_INTERVAL = 5000  # milliseconds (5 seconds)
             pygame.time.set_timer(SPAWN_ENEMY_EVENT, ENEMY_SPAWN_INTERVAL)
 
             SPAWN_POTION_EVENT = pygame.USEREVENT + 2
-            POTION_SPAWN_INTERVAL = 10000  # milliseconds (10 seconds)
+            POTION_SPAWN_INTERVAL = 15000
             pygame.time.set_timer(SPAWN_POTION_EVENT, POTION_SPAWN_INTERVAL)
 
             SPAWN_AMMO_EVENT = pygame.USEREVENT + 3
-            AMMO_SPAWN_INTERVAL = 20000  # milliseconds (2 seconds)
+            AMMO_SPAWN_INTERVAL = 35000
             pygame.time.set_timer(SPAWN_AMMO_EVENT, AMMO_SPAWN_INTERVAL)
-
-            ammo_increase_interval = 5000
+            ammo_increase_interval = 15000
             ammo_timer_event = pygame.USEREVENT + 4
 
+            SPAWN_SPEED_POTION_EVENT = pygame.USEREVENT + 5
+            SPEED_POTION_SPAWN_INTERVAL = 30000
+            pygame.time.set_timer(SPAWN_SPEED_POTION_EVENT, SPEED_POTION_SPAWN_INTERVAL)
+            speed_potion_interval = 5000
+            speed_potion_duration_timer = pygame.USEREVENT + 6
+
             game_over = False
+
         for bullet in bullets:
             for goblin in goblins:
                 # checks bullet collision to hitbox
